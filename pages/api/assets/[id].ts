@@ -1,52 +1,61 @@
-import { NextApiRequest, NextApiResponse } from 'next';
-import Mux from '@mux/mux-node';
+import { NextApiRequest, NextApiResponse } from 'next'
+import Mux from '@mux/mux-node'
 
-const { Video } = new Mux();
+const { Video } = new Mux()
 
-export default async function assetHandler (req: NextApiRequest, res: NextApiResponse): Promise<void> {
-  const { method } = req;
+export default async function assetHandler(
+  req: NextApiRequest,
+  res: NextApiResponse
+): Promise<void> {
+  const { method } = req
 
   switch (method) {
     case 'GET':
       try {
-        const asset = await Video.Assets.get(req.query.id as string);
+        const asset = await Video.Assets.get(req.query.id as string)
         if (!(asset.playback_ids && asset.playback_ids[0])) {
-          throw new Error('Error getting playback_id from asset');
+          throw new Error('Error getting playback_id from asset')
         }
+
+        console.log(JSON.stringify(asset, null, 2))
+
         res.json({
           asset: {
             id: asset.id,
             status: asset.status,
             errors: asset.errors,
-            playback_id: asset.playback_ids[0].id,
-          },
-        });
+            playback_id: asset.playback_ids[0].id
+          }
+        })
       } catch (e) {
-        res.statusCode = 500;
-        console.error('Request error', e); // eslint-disable-line no-console
-        res.json({ error: 'Error getting upload/asset' });
+        res.statusCode = 500
+        console.error('Request error', e) // eslint-disable-line no-console
+        res.json({ error: 'Error getting upload/asset' })
       }
-      break;
+      break
+
     case 'DELETE':
       if (
-        !process.env.SLACK_MODERATOR_PASSWORD
-        || (req.body.slack_moderator_password !== process.env.SLACK_MODERATOR_PASSWORD)
+        !process.env.SLACK_MODERATOR_PASSWORD ||
+        req.body.slack_moderator_password !==
+          process.env.SLACK_MODERATOR_PASSWORD
       ) {
-        res.status(401).end('Unauthorized');
-        return;
+        res.status(401).end('Unauthorized')
+        return
       }
 
       try {
-        await Video.Assets.del(req.query.id as string);
-        res.status(200).end(`Deleted ${req.query.id}`);
+        await Video.Assets.del(req.query.id as string)
+        res.status(200).end(`Deleted ${req.query.id}`)
       } catch (e) {
-        res.statusCode = 500;
-        console.error('Request error', e); // eslint-disable-line no-console
-        res.end('Error deleting asset');
+        res.statusCode = 500
+        console.error('Request error', e) // eslint-disable-line no-console
+        res.end('Error deleting asset')
       }
-      break;
+      break
+
     default:
-      res.setHeader('Allow', ['GET', 'DELETE']);
-      res.status(405).end(`Method ${method} Not Allowed`);
+      res.setHeader('Allow', ['GET', 'DELETE'])
+      res.status(405).end(`Method ${method} Not Allowed`)
   }
 }
